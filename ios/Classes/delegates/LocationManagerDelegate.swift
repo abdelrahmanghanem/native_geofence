@@ -15,11 +15,18 @@ class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
         log.debug("didDetermineState: \(String(describing: state)) for geofence ID: \(region.identifier)")
 
-        guard let event: GeofenceEvent = switch state {
-        case .unknown: nil
-        case .inside: .enter
-        case .outside: .exit
-        } else {
+        // Fix the switch statement
+        let event: GeofenceEvent?
+        switch state {
+        case .unknown:
+            event = nil
+        case .inside:
+            event = .enter
+        case .outside:
+            event = .exit
+        }
+
+        guard let validEvent = event else {
             log.error("Unknown CLRegionState: \(String(describing: state))")
             return
         }
@@ -34,10 +41,9 @@ class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        let params = GeofenceCallbackParamsWire(geofences: [activeGeofence], event: event, callbackHandle: callbackHandle)
+        let params = GeofenceCallbackParamsWire(geofences: [activeGeofence], event: validEvent, callbackHandle: callbackHandle)
         nativeGeofenceBackgroundApi.geofenceTriggered(params: params)
     }
-
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: any Error) {
         log.error("monitoringDidFailFor: \(region?.identifier ?? "nil") withError: \(error)")
     }
